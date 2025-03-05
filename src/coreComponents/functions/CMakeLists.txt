@@ -24,6 +24,7 @@ set( functions_headers
      FunctionBase.hpp
      FunctionManager.hpp
      TableFunction.hpp
+     TableFunctionBase.hpp
    )
 
 #
@@ -33,6 +34,7 @@ set( functions_sources
      FunctionBase.cpp
      FunctionManager.cpp
      TableFunction.cpp
+     TableFunctionBase.cpp
      MultivariableTableFunction.cpp
    )
 

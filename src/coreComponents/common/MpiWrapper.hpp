@@ -1303,6 +1303,7 @@ int MpiWrapper::send( T const * const buf,
   return MPI_Send( buf, count, internal::getMpiType< T >(), dest, tag, comm );
 #else
   GEOS_ERROR( "Not implemented without MPI" );
+  return MPI_SUCCESS;
 #endif
 }
 

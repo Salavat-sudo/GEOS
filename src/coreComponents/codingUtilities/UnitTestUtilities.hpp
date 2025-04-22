@@ -122,11 +122,13 @@ inline void checkRelativeError( real64 const v1, real64 const v2, real64 const r
   EXPECT_PRED_FORMAT4( checkRelativeErrorFormat, v1, v2, relTol, absTol );
 }
 
-template< typename COL_INDEX, typename VALUE >
-void compareMatrixRow( VALUE const relTol, VALUE const absTol,
+template< typename ROW_INDEX, typename COL_INDEX, typename VALUE >
+void compareMatrixRow( ROW_INDEX const rowNumber, VALUE const relTol, VALUE const absTol,
                        localIndex const length1, COL_INDEX const * const indices1, VALUE const * const values1,
                        localIndex const length2, COL_INDEX const * const indices2, VALUE const * const values2 )
 {
+  SCOPED_TRACE( "Row " + std::to_string( rowNumber ));
+
   EXPECT_EQ( length1, length2 );
 
   for( localIndex j1 = 0, j2 = 0; j1 < length1 && j2 < length2; ++j1, ++j2 )

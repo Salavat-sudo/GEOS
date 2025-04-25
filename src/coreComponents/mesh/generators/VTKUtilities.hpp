@@ -270,7 +270,7 @@ real64 writeNodes( integer const logLevel,
  */
 void writeCells( integer const logLevel,
                  vtkDataSet & mesh,
-                 const geos::vtk::CellMapType & cellMap,
+                 vtk::CellMapType const & cellMap,
                  CellBlockManager & cellBlockManager );
 
 /**

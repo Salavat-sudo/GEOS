@@ -2102,8 +2102,7 @@ real64 writeNodes( integer const logLevel,
 
 void writeCells( integer const logLevel,
                  vtkDataSet & mesh,
-                 vtk::CellMapType const & cellMap,
-                 string const & structuredIndexAttributeName,
+                 const geos::vtk::CellMapType & cellMap,
                  CellBlockManager & cellBlockManager )
 {
   // Creates a new cell block for each region and for each type of cell.

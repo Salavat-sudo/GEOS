@@ -89,6 +89,10 @@ public:
                                           std::vector< NeighborCommunicator > & allNeighbors,
                                           std::set< std::set< globalIndex > > const & collocatedNodesBuckets,
                                           std::set< globalIndex > const & requestedNodes );
+  void synchronizeFields( string_array const & fieldNames,
+                          ObjectManagerBase & manager,
+                          std::vector< NeighborCommunicator > & neighbors,
+                          bool onDevice );
 
   void synchronizeFields( FieldIdentifiers const & fieldsToBeSync,
                           MeshLevel & mesh,

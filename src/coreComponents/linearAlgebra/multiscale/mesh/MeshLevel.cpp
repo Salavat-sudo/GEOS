@@ -18,7 +18,7 @@
 
 #include "MeshLevel.hpp"
 
-// #include "common/TypeDispatch.hpp"
+#include "common/TypeDispatch.hpp"
 #include "linearAlgebra/DofManager.hpp"
 #include "linearAlgebra/multiscale/mesh/coarsening/Coarsening.hpp"
 #include "MeshData.hpp"
@@ -458,7 +458,7 @@ void MeshLevel::writeCellDataFine( std::vector< string > const & fieldNames, int
   for( string const & fieldName : fieldNames )
   {
     WrapperBase const & wrapper = m_cellManager.getWrapperBase( fieldName );
-    types::dispatch( types::StandardArrays{}, wrapper.getTypeId(), false, [&]( auto array )
+    types::dispatch( types::StandardArrays{}, wrapper.getTypeId(), [&]( auto array )
     {
       using ArrayType = decltype( array );
       using ArrayViewType = typename ArrayType::ParentClass;

@@ -458,9 +458,10 @@ void MeshLevel::writeCellDataFine( std::vector< string > const & fieldNames, int
   for( string const & fieldName : fieldNames )
   {
     WrapperBase const & wrapper = m_cellManager.getWrapperBase( fieldName );
-    types::dispatch( types::StandardArrays{}, wrapper.getTypeId(), [&]( auto array )
+    using ImportTypes = types::ListofTypeList< types::StandardArrays >;
+    types::dispatch( ImportTypes{}, [&]( auto array )
     {
-      using ArrayType = decltype( array );
+      using ArrayType = camp::first< decltype( array ) >;
       using ArrayViewType = typename ArrayType::ParentClass;
 
       auto const & typedWrapper = dynamicCast< Wrapper< ArrayType > const & >( wrapper );
@@ -488,7 +489,7 @@ void MeshLevel::writeCellDataFine( std::vector< string > const & fieldNames, int
           dstField[origRegion[ic]][origSubRegion[ic]]( origIndex[ic], indices ... ) = sourceVal;
         } );
       } );
-    } );
+    }, wrapper );
   }
 }
 
@@ -502,9 +503,10 @@ void MeshLevel::writeCellDataCoarse( std::vector< string > const & fieldNames, i
   for( string const & fieldName : fieldNames )
   {
     WrapperBase const & wrapper = m_cellManager.getWrapperBase( fieldName );
-    types::dispatch( types::StandardArrays{}, wrapper.getTypeId(), false, [&]( auto array )
+    using ImportTypes = types::ListofTypeList< types::StandardArrays >;
+    types::dispatch( ImportTypes{}, [&]( auto array )
     {
-      using ArrayType = decltype( array );
+      using ArrayType = camp::first< decltype( array ) >;
       auto const & typedWrapper = dynamicCast< Wrapper< ArrayType > const & >( wrapper );
       auto const & srcField = typedWrapper.reference().toViewConst();
 
@@ -526,7 +528,7 @@ void MeshLevel::writeCellDataCoarse( std::vector< string > const & fieldNames, i
           dstVal = srcField( coarseCellIndex[ic], indices ... );
         } );
       } );
-    } );
+    }, wrapper );
   }
 
   // Recursively call on finer levels
@@ -541,9 +543,10 @@ void MeshLevel::writeNodeDataFine( std::vector< string > const & fieldNames, int
   for( string const & fieldName : fieldNames )
   {
     WrapperBase const & wrapper = m_nodeManager.getWrapperBase( fieldName );
-    types::dispatch( types::StandardArrays{}, wrapper.getTypeId(), false, [&]( auto array )
+    using ImportTypes = types::ListofTypeList< types::StandardArrays >;
+    types::dispatch( ImportTypes{}, [&]( auto array )
     {
-      using ArrayType = decltype( array );
+      using ArrayType = camp::first< decltype( array ) >;
 
       auto const & typedWrapper = dynamicCast< Wrapper< ArrayType > const & >( wrapper );
       auto const & srcField = typedWrapper.reference().toViewConst();
@@ -565,7 +568,7 @@ void MeshLevel::writeNodeDataFine( std::vector< string > const & fieldNames, int
           dstField( origNodeIndex[ic], indices ... ) = sourceVal;
         } );
       } );
-    } );
+    }, wrapper );
   }
 }
 
@@ -578,9 +581,10 @@ void MeshLevel::writeNodeDataCoarse( std::vector< string > const & fieldNames, i
   for( string const & fieldName : fieldNames )
   {
     WrapperBase const & wrapper = m_nodeManager.getWrapperBase( fieldName );
-    types::dispatch( types::StandardArrays{}, wrapper.getTypeId(), false, [&]( auto array )
+    using ImportTypes = types::ListofTypeList< types::StandardArrays >;
+    types::dispatch( ImportTypes{}, [&]( auto array )
     {
-      using ArrayType = decltype( array );
+      using ArrayType = camp::first< decltype( array ) >;
 
       auto const & typedWrapper = dynamicCast< Wrapper< ArrayType > const & >( wrapper );
       auto const & srcField = typedWrapper.reference().toViewConst();
@@ -603,7 +607,7 @@ void MeshLevel::writeNodeDataCoarse( std::vector< string > const & fieldNames, i
           dstField( fineNodeIndex[ic], indices ... ) = sourceVal;
         } );
       } );
-    } );
+    }, wrapper );
   }
 
   // Recursively call on finer levels

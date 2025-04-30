@@ -231,6 +231,9 @@ buildLayeredNodalSupport( multiscale::MeshLevel const & fine,
   return result;
 }
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-function"
+
 static SupportDescription
 buildSupports( FieldLocation const loc,
                multiscale::MeshLevel const & fine,
@@ -256,6 +259,7 @@ buildSupports( FieldLocation const loc,
     }
   }
 }
+#pragma GCC diagnostic pop
 
 template< typename LAI >
 void MsrsbLevelBuilder< LAI >::initializeCoarseLevel( LevelBuilderBase< LAI > & fineLevel,

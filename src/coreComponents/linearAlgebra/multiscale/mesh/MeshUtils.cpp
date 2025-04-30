@@ -17,12 +17,11 @@
  */
 
 #include "MeshUtils.hpp"
-
 #include "mesh/DomainPartition.hpp"
 #include "mesh/mpiCommunications/CommunicationTools.hpp"
 
 namespace geos
-{
+{ 
 namespace multiscale
 {
 namespace meshUtils
@@ -30,7 +29,8 @@ namespace meshUtils
 
 void ScopedDataRegistrar::sync( DomainPartition & domain ) const
 {
-  array1d< string > fields;
+  string_array fields;
+  
   fields.emplace_back( m_key );
   CommunicationTools::getInstance().synchronizeFields( fields, m_manager, domain.getNeighbors(), false );
 }
@@ -73,6 +73,7 @@ findCoarseNodesByDualPartition( MeshObjectManager::MapViewConst const & nodeToDu
   GEOS_MARK_FUNCTION;
 
   // Construct a list of "skeleton" nodes (those with at least minSubdomains adjacent subdomains)
+
   array1d< localIndex > skelNodes;
   for( localIndex inf = 0; inf < nodeToDual.size(); ++inf )
   {

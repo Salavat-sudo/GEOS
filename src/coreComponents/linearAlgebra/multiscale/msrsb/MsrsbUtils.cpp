@@ -655,7 +655,7 @@ void writeProlongation( CRSMatrixView< real64 const, globalIndex const > const &
   } );
 
   string_array fieldNames;
-  fieldNames.insert( 0, names.begin(), names.end() );
+  fieldNames.insert( fieldNames.begin(), names.begin(), names.end() );
   CommunicationTools::getInstance().synchronizeFields( fieldNames,
                                                        fineManager,
                                                        mesh.domain()->getNeighbors(),

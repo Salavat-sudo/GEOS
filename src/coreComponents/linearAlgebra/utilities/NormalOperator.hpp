@@ -16,8 +16,8 @@
 /**
  * @file NormalOperator.hpp
  */
-#ifndef GEOS_LINEARALGEBRA_UTILITIES_NORMALOPERATOR_HPP_
-#define GEOS_LINEARALGEBRA_UTILITIES_NORMALOPERATOR_HPP_
+#ifndef GEOS_LINEARALGEBRA_NORMALOPERATOR_HPP_
+#define GEOS_LINEARALGEBRA_NORMALOPERATOR_HPP_
 
 #include "common/LinearOperator.hpp"
 
@@ -28,19 +28,19 @@ namespace geos
  * @brief Wraps a matrix A and represents A^T * A as a linear operator.
  * @tparam LAI the linear algebra interface
  */
-template< typename MATRIX >
-class NormalOperator : public LinearOperator< typename MATRIX::Vector >
+template< typename LAI >
+class NormalOperator : public LinearOperator< typename LAI::ParallelVector >
 {
 public:
 
   /// Alias for base type
-  using Base = LinearOperator< typename MATRIX::Vector >;
+  using Base = LinearOperator< typename LAI::ParallelVector >;
 
   /// Alias for vector type
   using Vector = typename Base::Vector;
 
   /// Alias for matrix type
-  using Matrix = MATRIX;
+  using Matrix = typename LAI::ParallelMatrix;
 
   /**
    * @brief Constructor
@@ -49,6 +49,11 @@ public:
   explicit NormalOperator( Matrix const & mat )
     : m_matrix( mat )
   {}
+
+  /**
+   * @brief Destructor.
+   */
+  virtual ~NormalOperator() override = default;
 
   /**
    * @brief Apply operator to a vector.
@@ -111,4 +116,4 @@ private:
 
 } // namespace geos
 
-#endif //GEOS_LINEARALGEBRA_UTILITIES_NORMALOPERATOR_HPP_
+#endif //GEOS_LINEARALGEBRA_NORMALOPERATOR_HPP_

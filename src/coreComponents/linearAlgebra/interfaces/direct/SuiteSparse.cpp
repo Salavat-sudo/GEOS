@@ -218,7 +218,6 @@ template< typename LAI >
 void SuiteSparse< LAI >::apply( Vector const & src,
                                 Vector & dst ) const
 {
-  GEOS_MARK_FUNCTION;
   doSolve( src, dst, false );
 }
 

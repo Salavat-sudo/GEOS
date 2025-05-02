@@ -925,7 +925,11 @@ void HypreMatrix::addEntries( HypreMatrix const & src,
       }
       break;
     }
-    case MatrixPatternOp::Same:
+    case MatrixPatternOp::Equal:
+    {
+      hypre::addMatrixEntries< hypre::AddEntriesSamePatternKernel >( src.unwrapped(), unwrapped(), scale );
+      break;
+    }
     case MatrixPatternOp::Subset:
     case MatrixPatternOp::Extend:
     {

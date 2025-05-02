@@ -690,19 +690,17 @@ void HypreMatrix::multiplyRAP( HypreMatrix const & R,
   dst.parCSRtoIJ( dst_parcsr );
 }
 
-void HypreMatrix::multiplyPtAP( HypreMatrix const & P1,
-                                HypreMatrix const & P2,
+void HypreMatrix::multiplyPtAP( HypreMatrix const & P,
                                 HypreMatrix & dst ) const
 {
   GEOS_LAI_ASSERT( ready() );
-  GEOS_LAI_ASSERT( P1.ready() );
-  GEOS_LAI_ASSERT( P2.ready() );
-  GEOS_LAI_ASSERT_EQ( numLocalRows(), P1.numLocalRows() );
-  GEOS_LAI_ASSERT_EQ( numLocalCols(), P2.numLocalRows() );
+  GEOS_LAI_ASSERT( P.ready() );
+  GEOS_LAI_ASSERT_EQ( numLocalRows(), P.numLocalRows() );
+  GEOS_LAI_ASSERT_EQ( numLocalCols(), P.numLocalRows() );
 
-  HYPRE_ParCSRMatrix const dst_parcsr = hypre_ParCSRMatrixRAPKT( P1.unwrapped(),
+  HYPRE_ParCSRMatrix const dst_parcsr = hypre_ParCSRMatrixRAPKT( P.unwrapped(),
                                                                  m_parcsr_mat,
-                                                                 P2.unwrapped(),
+                                                                 P.unwrapped(),
                                                                  0 );
 
   dst.parCSRtoIJ( dst_parcsr );
@@ -843,7 +841,6 @@ void HypreMatrix::separateComponentFilter( HypreMatrix & dst,
                                            integer const dofsPerNode ) const
 {
   GEOS_MARK_FUNCTION;
-  GEOS_LAI_ASSERT( ready() );
 
   localIndex const maxRowEntries = maxRowLength();
   integer const temp = maxRowEntries % dofsPerNode;
@@ -911,14 +908,24 @@ void HypreMatrix::addEntries( HypreMatrix const & src,
   {
     case MatrixPatternOp::Restrict:
     {
-      hypre::addMatrixEntries< hypre::AddEntriesRestrictedKernel >( src.unwrapped(), unwrapped(), scale );
+      hypre::addEntriesRestricted( hypre_ParCSRMatrixDiag( src.unwrapped() ),
+                                   hypre::ops::identity< HYPRE_Int >,
+                                   hypre_ParCSRMatrixDiag( unwrapped() ),
+                                   hypre::ops::identity< HYPRE_Int >,
+                                   scale );
+      if( hypre_CSRMatrixNumCols( hypre_ParCSRMatrixOffd( unwrapped() ) ) > 0 )
+      {
+        HYPRE_BigInt const * const src_colmap = hypre::getOffdColumnMap( src.unwrapped() );
+        HYPRE_BigInt const * const dst_colmap = hypre::getOffdColumnMap( unwrapped() );
+        hypre::addEntriesRestricted( hypre_ParCSRMatrixOffd( src.unwrapped() ),
+                                     [src_colmap] GEOS_HYPRE_DEVICE ( auto i ) { return src_colmap[i]; },
+                                     hypre_ParCSRMatrixOffd( unwrapped() ),
+                                     [dst_colmap] GEOS_HYPRE_DEVICE ( auto i ) { return dst_colmap[i]; },
+                                     scale );
+      }
       break;
     }
-    case MatrixPatternOp::Equal:
-    {
-      hypre::addMatrixEntries< hypre::AddEntriesSamePatternKernel >( src.unwrapped(), unwrapped(), scale );
-      break;
-    }
+    case MatrixPatternOp::Same:
     case MatrixPatternOp::Subset:
     case MatrixPatternOp::Extend:
     {
@@ -970,7 +977,7 @@ void HypreMatrix::clampEntries( real64 const lo,
   hypre::clampMatrixEntries( hypre_ParCSRMatrixOffd( m_parcsr_mat ), lo, hi, false );
 }
 
-localIndex HypreMatrix::maxRowLengthLocal() const
+localIndex HypreMatrix::maxRowLength() const
 {
   GEOS_LAI_ASSERT( assembled() );
 
@@ -983,7 +990,7 @@ localIndex HypreMatrix::maxRowLengthLocal() const
     localMaxRowLength.max( (ia_diag[localRow + 1] - ia_diag[localRow]) + (ia_offd[localRow + 1] - ia_offd[localRow] ) );
   } );
 
-  return localMaxRowLength.get();
+  return MpiWrapper::max( localMaxRowLength.get(), comm() );
 }
 
 localIndex HypreMatrix::rowLength( globalIndex const globalRowIndex ) const
@@ -1414,11 +1421,11 @@ void HypreMatrix::write( string const & filename,
         std::ofstream os( filename );
         GEOS_ERROR_IF( !os, GEOS_FMT( "Unable to open file for writing: {}", filename ) );
         os << "%%MatrixMarket matrix coordinate real general\n";
-        os << GEOS_FMT( "{} {} {}\n", numRows, numCols, numNonzeros );
+        os << GEOS_FMT( "{} {} {}\n", numGlobalRows(), numGlobalCols(), numGlobalNonzeros() );
       }
 
       // Write matrix values
-      if( numRows > 0 && numCols > 0 )
+      if( numGlobalRows() > 0 && numGlobalCols() > 0 )
       {
         // Copy distributed parcsr matrix in a local CSR matrix on every process with at least one row
         // Warning: works for a parcsr matrix that is smaller than 2^31-1
@@ -1441,8 +1448,7 @@ void HypreMatrix::write( string const & filename,
             for( HYPRE_Int k = csr.rowptr[i]; k < csr.rowptr[i + 1]; k++ )
             {
               // MatrixMarket row/col indices are 1-based
-              GEOS_FMT_TO( str, sizeof( str ), "{1:>{0}} {2:>{0}} {3:>24.16e}\n",
-                           width, i + 1, csr.colind[k] + 1, csr.values[k] );
+              GEOS_FMT_TO( str, sizeof( str ), "{} {} {:>28.16e}\n", i + 1, csr.colind[k] + 1, csr.values[k] );
               os << str;
             }
           }

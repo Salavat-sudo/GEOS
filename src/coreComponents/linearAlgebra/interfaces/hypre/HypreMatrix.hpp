@@ -254,9 +254,8 @@ public:
                             HypreMatrix const & P,
                             HypreMatrix & dst ) const override;
 
-  virtual void multiplyPtAP( Matrix const & P1,
-                             Matrix const & P2,
-                             Matrix & dst ) const override;
+  virtual void multiplyPtAP( HypreMatrix const & P,
+                             HypreMatrix & dst ) const override;
 
   virtual void gemv( real64 const alpha,
                      HypreVector const & x,
@@ -297,9 +296,11 @@ public:
                              bool const excludeDiag ) override;
 
   /**
-   * @copydoc MatrixBase<HypreMatrix,HypreVector>::maxRowLengthLocal
+   * @copydoc MatrixBase<HypreMatrix,HypreVector>::maxRowLength
    */
   virtual localIndex maxRowLengthLocal() const override;
+  
+  virtual localIndex maxRowLength() const override;
 
   virtual localIndex rowLength( globalIndex const globalRowIndex ) const override;
 

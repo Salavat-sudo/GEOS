@@ -22,7 +22,6 @@
 #include "codingUtilities/Utilities.hpp"
 #include "common/MpiWrapper.hpp"
 #include "common/Stopwatch.hpp"
-#include "common/TimingMacros.hpp"
 #include "linearAlgebra/common/common.hpp"
 #include "linearAlgebra/interfaces/InterfaceTypes.hpp"
 #include "linearAlgebra/utilities/Arnoldi.hpp"
@@ -114,6 +113,7 @@ struct SuperLUDistData
   array1d< int_t > rowPtr{};          ///< row pointers
   array1d< int_t > colIndices{};      ///< column indices
   array1d< double > values{};         ///< values
+  array1d< double > rhs{};            ///< rhs/solution vector values
   SuperMatrix mat{};                  ///< SuperLU_Dist matrix format
   dScalePermstruct_t scalePerm{};     ///< data structure to scale and permute the matrix
   dLUstruct_t lu{};                   ///< data structure to store the LU factorization
@@ -130,6 +130,7 @@ struct SuperLUDistData
     rowPtr.resize( numLocalRows + 1 );
     colIndices.resize( numLocalNonzeros );
     values.resize( numLocalNonzeros );
+    rhs.resize( numLocalRows );
     dScalePermstructInit( numGlobalRows, numGlobalRows, &scalePerm );
     dLUstructInit( numGlobalRows, &lu );
     PStatInit( &stat );
@@ -211,8 +212,6 @@ template< typename LAI >
 void SuperLUDist< LAI >::apply( Vector const & src,
                                 Vector & dst ) const
 {
-  GEOS_MARK_FUNCTION;
-
   GEOS_LAI_ASSERT( ready() );
   GEOS_LAI_ASSERT( src.ready() );
   GEOS_LAI_ASSERT( dst.ready() );
@@ -321,7 +320,7 @@ void SuperLUDist< LAI >::setOptions()
 {
   // Initialize options.
   set_default_options_dist( &m_data->options );
-  m_data->options.PrintStat = m_params.logLevel >= 3 ? YES : NO;
+  m_data->options.PrintStat = m_params.logLevel > 1 ? YES : NO;
   m_data->options.Equil = m_params.direct.equilibrate ? YES : NO;
   m_data->options.ColPerm = getColPermType( m_params.direct.colPerm );
   m_data->options.RowPerm = getRowPermType( m_params.direct.rowPerm );
@@ -329,7 +328,7 @@ void SuperLUDist< LAI >::setOptions()
   m_data->options.ReplaceTinyPivot = m_params.direct.replaceTinyPivot ? YES : NO;
   m_data->options.IterRefine = m_params.direct.iterativeRefine ? SLU_DOUBLE : NOREFINE;
 
-  if( m_params.logLevel > 3 && MpiWrapper::commRank( m_data->grid.comm ) == 0 )
+  if( m_params.logLevel > 0 )
   {
     print_sp_ienv_dist( &m_data->options );
     print_options_dist( &m_data->options );
@@ -425,7 +424,7 @@ real64 SuperLUDist< LAI >::estimateConditionNumberAdvanced() const
   GEOS_LAI_ASSERT( ready() );
   localIndex constexpr numIterations = 4;
 
-  NormalOperator< Matrix > const normalOperator( matrix() );
+  NormalOperator< LAI > const normalOperator( matrix() );
   real64 const lambdaDirect = ArnoldiLargestEigenvalue( normalOperator, numIterations );
 
   InverseNormalOperator< LAI, SuperLUDist > const inverseNormalOperator( matrix(), *this );

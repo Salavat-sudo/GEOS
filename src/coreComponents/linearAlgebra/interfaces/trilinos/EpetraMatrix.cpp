@@ -456,8 +456,8 @@ void EpetraMatrix::multiplyRAP( EpetraMatrix const & R,
   GEOS_LAI_ASSERT( ready() );
   GEOS_LAI_ASSERT( R.ready() );
   GEOS_LAI_ASSERT( P.ready() );
-  GEOS_LAI_ASSERT_EQ( R.numLocalCols(), numLocalRows() );
-  GEOS_LAI_ASSERT_EQ( numLocalCols(), P.numLocalRows() );
+  GEOS_LAI_ASSERT_EQ( numGlobalRows(), R.numGlobalCols() );
+  GEOS_LAI_ASSERT_EQ( numGlobalCols(), P.numGlobalRows() );
 
   Epetra_CrsMatrix * result = nullptr;
   GEOS_LAI_CHECK_ERROR( ML_Epetra::ML_Epetra_RAP( unwrapped(), P.unwrapped(), R.unwrapped(), result, false ) );
@@ -472,22 +472,22 @@ void EpetraMatrix::multiplyRAP( EpetraMatrix const & R,
 void EpetraMatrix::multiplyPtAP( EpetraMatrix const & P,
                                  EpetraMatrix & dst ) const
 {
+  // TODO: ML_Epetra_PtAP does not work with long long indices, find a workaround?
+#if 0
   GEOS_LAI_ASSERT( ready() );
   GEOS_LAI_ASSERT( P.ready() );
   GEOS_LAI_ASSERT_EQ( numGlobalRows(), P.numGlobalRows() );
   GEOS_LAI_ASSERT_EQ( numGlobalCols(), P.numGlobalRows() );
 
   Epetra_CrsMatrix * result = nullptr;
-  // TODO: ML_Epetra_PtAP does not work with long long indices, find a workaround?
-#if 0
-  GEOS_LAI_CHECK_ERROR( ML_Epetra::ML_Epetra_PtAP( unwrapped(), P.unwrapped(), result ) );
-#else
-  GEOS_LAI_CHECK_ERROR( ML_Epetra::Epetra_PtAP( unwrapped(), P.unwrapped(), result ) );
-#endif
+  GEOS_LAI_CHECK_ERROR( ML_Epetra::ML_Epetra_PtAP( unwrapped(), P.unwrapped(), result, false ) );
 
   // After we switch to Epetra_CrsMatrix for storage, can avoid this copy
   dst.create( *result );
   delete result;
+#else
+  MatrixBase::multiplyPtAP( P, dst );
+#endif
 }
 
 void EpetraMatrix::gemv( real64 const alpha,
@@ -547,19 +547,20 @@ void EpetraMatrix::transpose( EpetraMatrix & dst ) const
 void EpetraMatrix::separateComponentFilter( EpetraMatrix & dst,
                                             integer const dofsPerNode ) const
 {
-  GEOS_LAI_ASSERT( ready() );
+  localIndex const maxRowEntries = maxRowLength();
+  GEOS_LAI_ASSERT_EQ( maxRowEntries % dofsPerNode, 0 );
 
-  CRSMatrix< real64, globalIndex > tempMat;
-  tempMat.resize( numLocalRows(), numGlobalCols(), ( maxRowLengthLocal() + dofsPerNode - 1 ) / dofsPerNode );
+  CRSMatrix< real64 > tempMat;
+  tempMat.resize( numLocalRows(), numGlobalCols(), maxRowEntries / dofsPerNode );
+  CRSMatrixView< real64 > const tempMatView = tempMat.toView();
 
   globalIndex const firstLocalRow = ilower();
-  auto const getComponent = [dofsPerNode] ( auto const i )
+  auto const getComponent = [dofsPerNode] ( auto i )
   {
     return LvArray::integerConversion< integer >( i % dofsPerNode );
   };
 
-  forAll< parallelHostPolicy >( numLocalRows(), [this, getComponent, firstLocalRow,
-                                                 tempMatView = tempMat.toView()] ( localIndex const localRow )
+  forAll< parallelHostPolicy >( numLocalRows(), [&] ( localIndex const localRow )
   {
     int numEntries;
     int * columns;
@@ -618,91 +619,39 @@ real64 EpetraMatrix::clearRow( globalIndex const globalRow,
 namespace
 {
 
-template< typename MAP >
-void makeSortedPermutation( int const * const indices,
-                            int const size,
-                            int * const perm,
-                            MAP map )
-{
-  for( int i = 0; i < size; ++i )
-  {
-    perm[i] = i; // std::iota
-  }
-  auto const comp = [indices, map] ( int i, int j ){ return map( indices[i] ) < map( indices[j] ); };
-  LvArray::sortedArrayManipulation::makeSorted( perm, perm + size, comp );
-}
-
-struct CSRData
-{
-  int * rowptr{};
-  int * colind{};
-  double * values{};
-  int nrow;
-  int ncol;
-  int nnz;
-
-  explicit CSRData( Epetra_CrsMatrix const & mat )
-    : nrow( mat.NumMyRows() ),
-    ncol( mat.NumMyCols() ),
-    nnz( mat.NumMyNonzeros() )
-  {
-    mat.ExtractCrsDataPointers( rowptr, colind, values );
-  }
-};
-
-void addEntriesRestricted( Epetra_CrsMatrix const & src_mat,
-                           Epetra_CrsMatrix const & dst_mat,
+void addEntriesRestricted( Epetra_CrsMatrix const & src,
+                           Epetra_CrsMatrix const & dst,
                            real64 const scale )
 {
-  GEOS_LAI_ASSERT( src_mat.NumMyRows() == dst_mat.NumMyRows() );
+  GEOS_LAI_ASSERT( src.NumMyRows() == dst.NumMyRows() );
 
-  CSRData src{ src_mat };
-  CSRData dst{ dst_mat };
-
-  if( src.ncol == 0 || isZero( scale ) )
+  if( isZero( scale ) )
   {
     return;
   }
 
-  array1d< int > const src_permutation( src.nnz );
-  array1d< int > const dst_permutation( dst.nnz );
+  int dst_length;
+  int * dst_indices;
+  double * dst_values;
 
-  forAll< parallelHostPolicy >( dst.nrow,
-                                [&src_mat, &dst_mat, src, dst, scale,
-                                 src_permutation = src_permutation.toView(),
-                                 dst_permutation = dst_permutation.toView()]( int const localRow )
+  int src_length;
+  int * src_indices;
+  double * src_values;
+
+  for( int localRow = 0; localRow < dst.NumMyRows(); ++localRow )
   {
-
-    int const src_offset = src.rowptr[localRow];
-    int const src_length = src.rowptr[localRow + 1] - src_offset;
-    int const * const src_indices = src.colind + src_offset;
-    double const * const src_values = src.values + src_offset;
-    int * const src_perm = src_permutation.data() + src_offset;
-    auto const src_colmap = [&src_mat]( int const i ) { return src_mat.GCID64( i ); };
-
-    int const dst_offset = dst.rowptr[localRow];
-    int const dst_length = dst.rowptr[localRow + 1] - dst_offset;
-    int const * const dst_indices = dst.colind + dst_offset;
-    double * const dst_values = dst.values + dst_offset;
-    int * const dst_perm = dst_permutation.data() + dst_offset;
-    auto const dst_colmap = [&dst_mat]( int const i ) { return dst_mat.GCID64( i ); };
-
-    // Create a view of both matrix rows that is "sorted" w.r.t. GCID
-    makeSortedPermutation( src_indices, src_length, src_perm, src_colmap );
-    makeSortedPermutation( dst_indices, dst_length, dst_perm, dst_colmap );
-
+    dst.ExtractMyRowView( LvArray::integerConversion< int >( localRow ), dst_length, dst_values, dst_indices );
+    src.ExtractMyRowView( LvArray::integerConversion< int >( localRow ), src_length, src_values, src_indices );
     for( int i = 0, j = 0; i < dst_length && j < src_length; ++i )
     {
-      while( j < src_length && src_colmap( src_indices[src_perm[j]] ) < dst_colmap( dst_indices[dst_perm[i]] ) )
-      {
+      while( j < src_length && src_indices[j] < dst_indices[i] )
         ++j;
-      }
-      if( j < src_length && src_colmap( src_indices[src_perm[j]] ) == dst_colmap( dst_indices[dst_perm[i]] ) )
+      if( j < src_length && src_indices[j] == dst_indices[i] )
       {
-        dst_values[dst_perm[i]] += scale * src_values[src_perm[j++]];
+        dst_values[i] += scale * src_values[j++];
       }
     }
-  } );
+  }
 }
 
 } // namespace
@@ -801,30 +750,9 @@ localIndex EpetraMatrix::rowLength( globalIndex const globalRowIndex ) const
 void EpetraMatrix::getRowLengths( arrayView1d< localIndex > const & lengths ) const
 {
   GEOS_LAI_ASSERT( assembled() );
-  forAll< parallelHostPolicy >( numLocalRows(), [&mat = *m_matrix, lengths]( localIndex const localRow )
+  forAll< parallelHostPolicy >( numLocalRows(), [=]( localIndex const localRow )
   {
-    lengths[localRow] = mat.NumMyEntries( LvArray::integerConversion< int >( localRow ) );
-  } );
-}
-
-void EpetraMatrix::getRowLocalLengths( arrayView1d< localIndex > const & lengths ) const
-{
-  GEOS_LAI_ASSERT( assembled() );
-  globalIndex const firstCol = jlower();
-  globalIndex const lastCol = jupper();
-  auto const isLocalColumn = [&mat = *m_matrix, firstCol, lastCol]( int const c )
-  {
-    long long const gid = mat.GCID64( c );
-    return firstCol <= gid && gid < lastCol;
-  };
-  forAll< parallelHostPolicy >( numLocalRows(), [&mat = *m_matrix, lengths, isLocalColumn]( localIndex const localRow )
-  {
-    int numEntries;
-    int * indicesPtr;
-    double * values;
-    GEOS_LAI_CHECK_ERROR( mat.ExtractMyRowView( localRow, numEntries, values, indicesPtr ) );
-    auto const count = std::count_if( indicesPtr, indicesPtr + numEntries, isLocalColumn );
-    lengths[localRow] = LvArray::integerConversion< localIndex >( count );
+    lengths[localRow] = m_matrix->NumMyEntries( LvArray::integerConversion< int >( localRow ) );
   } );
 }
 
@@ -846,7 +774,7 @@ void EpetraMatrix::getRowCopy( globalIndex globalRow,
   GEOS_LAI_ASSERT_GE( values.size(), numEntries );
 
   std::transform( indicesPtr, indicesPtr + numEntries, colIndices.begin(),
-                  [this]( int const c ){ return LvArray::integerConversion< globalIndex >( m_matrix->GCID64( c ) ); } );
+                  [&mat=*m_matrix]( int const c ){ return LvArray::integerConversion< globalIndex >( mat.GCID64( c ) ); } );
   std::copy( valuesPtr, valuesPtr + numEntries, values.begin() );
 }
 

@@ -210,27 +210,23 @@ makeSortedPermutation( HYPRE_Int const * const indices,
 
 } // namespace internal
 
-template< typename KERNEL >
-void addMatrixEntries( hypre_ParCSRMatrix const * const src,
-                       hypre_ParCSRMatrix * const dst,
-                       real64 const scale )
+template< typename SRC_COLMAP, typename DST_COLMAP >
+void addEntriesRestricted( hypre_CSRMatrix const * const src_mat,
+                           SRC_COLMAP const src_colmap,
+                           hypre_CSRMatrix * const dst_mat,
+                           DST_COLMAP const dst_colmap,
+                           real64 const scale )
 {
-  GEOS_LAI_ASSERT( src != nullptr );
-  GEOS_LAI_ASSERT( dst != nullptr );
-  KERNEL::launch( hypre_ParCSRMatrixDiag( src ),
-                  hypre::ops::identity< HYPRE_Int >,
-                  hypre_ParCSRMatrixDiag( dst ),
-                  hypre::ops::identity< HYPRE_Int >,
-                  scale );
-  if( hypre_CSRMatrixNumCols( hypre_ParCSRMatrixOffd( dst ) ) > 0 )
+  GEOS_LAI_ASSERT( src_mat != nullptr );
+  GEOS_LAI_ASSERT( dst_mat != nullptr );
+
+  CSRData< true > src{ src_mat };
+  CSRData< false > dst{ dst_mat };
+  GEOS_LAI_ASSERT_EQ( src.nrow, dst.nrow );
+
+  if( src.ncol == 0 || isZero( scale ) )
   {
-    HYPRE_BigInt const * const src_colmap = hypre::getOffdColumnMap( src );
-    HYPRE_BigInt const * const dst_colmap = hypre::getOffdColumnMap( dst );
-    KERNEL::launch( hypre_ParCSRMatrixOffd( src ),
-                    [src_colmap] GEOS_HYPRE_DEVICE ( auto i ){ return src_colmap[i]; },
-                    hypre_ParCSRMatrixOffd( dst ),
-                    [dst_colmap] GEOS_HYPRE_DEVICE ( auto i ){ return dst_colmap[i]; },
-                    scale );
+    return;
   }
 
   // Allocate contiguous memory to store sorted column permutations of each row

@@ -74,12 +74,14 @@ public:
   }
 
   /**
-   * @brief @return the number of global rows.
+   * @brief Get the number of global rows.
+   * @return Number of global rows in the operator.
    */
   virtual globalIndex numGlobalRows() const = 0;
 
   /**
-   * @brief @return the number of global columns.
+   * @brief Get the number of global columns.
+   * @return Number of global columns in the operator.
    */
   virtual globalIndex numGlobalCols() const = 0;
 
@@ -103,7 +105,8 @@ public:
   virtual localIndex numLocalRows() const = 0;
 
   /**
-   * @brief @return the number of local columns.
+   * @brief Get the number of local columns.
+   * @return Number of local columns in the operator.
    *
    * @note The use of term "local columns" refers not to physical partitioning of columns across ranks
    *       (as e.g. matrices are partitioned by rows and typically physically store all column entries),

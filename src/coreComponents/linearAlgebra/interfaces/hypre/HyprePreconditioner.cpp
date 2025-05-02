@@ -86,14 +86,11 @@ void createAMG( LinearSolverParameters const & params,
   HYPRE_Int logLevel = (params.logLevel == 2 || params.logLevel >= 4) ? 1 : 0;
 
   GEOS_LAI_CHECK_ERROR( HYPRE_BoomerAMGSetTol( precond.ptr, 0.0 ) );
-  GEOS_LAI_CHECK_ERROR( HYPRE_BoomerAMGSetMaxIter( precond.ptr, params.amg.numCycles ) );
+  GEOS_LAI_CHECK_ERROR( HYPRE_BoomerAMGSetMaxIter( precond.ptr, 1 ) );
   GEOS_LAI_CHECK_ERROR( HYPRE_BoomerAMGSetPrintLevel( precond.ptr, logLevel ) );
 
   // Set maximum number of multigrid levels (default 25)
-  GEOS_LAI_CHECK_ERROR( HYPRE_BoomerAMGSetMaxLevels( precond.ptr, params.amg.maxLevels ) );
-
-  // Set coarse grid max size (coarsening will stop once this limit is reached)
-  GEOS_LAI_CHECK_ERROR( HYPRE_BoomerAMGSetMaxCoarseSize( precond.ptr, params.amg.maxCoarseSize ) );
+  GEOS_LAI_CHECK_ERROR( HYPRE_BoomerAMGSetMaxLevels( precond.ptr, LvArray::integerConversion< HYPRE_Int >( params.amg.maxLevels ) ) );
 
   // Set type of cycle (1: V-cycle (default); 2: W-cycle)
   GEOS_LAI_CHECK_ERROR( HYPRE_BoomerAMGSetCycleType( precond.ptr, hypre::getAMGCycleType( params.amg.cycleType ) ) );
@@ -138,13 +135,11 @@ void createAMG( LinearSolverParameters const & params,
   // Set smoother to be used (other options available, see hypre's documentation)
   // (default "gaussSeidel", i.e. local symmetric Gauss-Seidel)
 
-  if( params.amg.smootherType == LinearSolverParameters::AMG::SmootherType::ilu ||
+  if( params.amg.smootherType == LinearSolverParameters::AMG::SmootherType::ilu0 ||
       params.amg.smootherType == LinearSolverParameters::AMG::SmootherType::ilut )
   {
     GEOS_LAI_CHECK_ERROR( HYPRE_BoomerAMGSetSmoothType( precond.ptr, 5 ) );
-    GEOS_LAI_CHECK_ERROR( HYPRE_BoomerAMGSetILUType( precond.ptr, hypre::getILUType( params.amg.smootherType ) ) );
-    GEOS_LAI_CHECK_ERROR( HYPRE_BoomerAMGSetSmoothNumLevels( precond.ptr, LvArray::integerConversion< HYPRE_Int >( params.amg.maxLevels ) ) );
-    GEOS_LAI_CHECK_ERROR( HYPRE_BoomerAMGSetSmoothNumSweeps( precond.ptr, LvArray::integerConversion< HYPRE_Int >( params.amg.numSweeps ) ) );
+    GEOS_LAI_CHECK_ERROR( HYPRE_ILUSetType( precond.ptr, hypre::getILUType( params.amg.smootherType ) ) );
   }
   else
   {
@@ -344,7 +339,7 @@ void HyprePreconditioner::create( DofManager const * const dofManager )
       hypre::mgr::createMGR( m_params, dofManager, *m_precond, *m_mgrData );
       break;
     }
-    case LinearSolverParameters::PreconditionerType::ilu:
+    case LinearSolverParameters::PreconditionerType::iluk:
     case LinearSolverParameters::PreconditionerType::ilut:
     {
       createILU( m_params, *m_precond );

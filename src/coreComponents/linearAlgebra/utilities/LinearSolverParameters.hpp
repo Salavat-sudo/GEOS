@@ -59,7 +59,7 @@ struct LinearSolverParameters
     sgs,       ///< Symmetric Gauss-Seidel smoothing
     l1sgs,     ///< l1-Symmetric Gauss-Seidel smoothing
     chebyshev, ///< Chebyshev polynomial smoothing
-    ilu,       ///< Incomplete LU with k-level of fill
+    iluk,      ///< Incomplete LU with k-level of fill
     ilut,      ///< Incomplete LU with thresholding
     ic,        ///< Incomplete Cholesky
     ict,       ///< Incomplete Cholesky with thresholding
@@ -77,7 +77,7 @@ struct LinearSolverParameters
   integer stopIfError = 1;  ///< Whether to stop the simulation if the linear solver reports an error
 
   SolverType solverType = SolverType::direct;          ///< Solver type
-  PreconditionerType preconditionerType = PreconditionerType::ilu;  ///< Preconditioner type
+  PreconditionerType preconditionerType = PreconditionerType::iluk;  ///< Preconditioner type
 
   /// Direct solver parameters: used for SuperLU_Dist interface through hypre and PETSc
   struct Direct
@@ -184,9 +184,9 @@ struct LinearSolverParameters
       sgs,                ///< Symmetric Gauss-Seidel smoothing
       l1sgs,              ///< l1-Symmetric Gauss-Seidel smoothing
       chebyshev,          ///< Chebyshev polynomial smoothing
-      ilu,                ///< Incomplete LU
+      ilu0,               ///< ILU(0)
       ilut,               ///< Incomplete LU with thresholding
-      ic,                 ///< Incomplete Cholesky
+      ic0,                ///< Incomplete Cholesky
       ict                 ///< Incomplete Cholesky with thresholding
     };
 
@@ -539,9 +539,9 @@ ENUM_STRINGS( LinearSolverParameters::PreconditionerType,
               "sgs",
               "l1sgs",
               "chebyshev",
-              "ilu",
+              "iluk",
               "ilut",
-              "ic",
+              "icc",
               "ict",
               "amg",
               "mgr",
@@ -613,9 +613,9 @@ ENUM_STRINGS( LinearSolverParameters::AMG::SmootherType,
               "sgs",
               "l1sgs",
               "chebyshev",
-              "ilu",
+              "ilu0",
               "ilut",
-              "ic",
+              "ic0",
               "ict" );
 
 /// Declare strings associated with enumeration values.

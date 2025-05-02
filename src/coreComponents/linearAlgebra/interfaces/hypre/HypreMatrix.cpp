@@ -927,7 +927,21 @@ void HypreMatrix::addEntries( HypreMatrix const & src,
     }
     case MatrixPatternOp::Equal:
     {
-      hypre::addMatrixEntries< hypre::AddEntriesSamePatternKernel >( src.unwrapped(), unwrapped(), scale );
+      hypre::addEntriesRestricted( hypre_ParCSRMatrixDiag( src.unwrapped() ),
+                                   hypre::ops::identity< HYPRE_Int >,
+                                   hypre_ParCSRMatrixDiag( unwrapped() ),
+                                   hypre::ops::identity< HYPRE_Int >,
+                                   scale );
+      if( hypre_CSRMatrixNumCols( hypre_ParCSRMatrixOffd( unwrapped() ) ) > 0 )
+      {
+        HYPRE_BigInt const * const src_colmap = hypre::getOffdColumnMap( src.unwrapped() );
+        HYPRE_BigInt const * const dst_colmap = hypre::getOffdColumnMap( unwrapped() );
+        hypre::addEntriesRestricted( hypre_ParCSRMatrixOffd( src.unwrapped() ),
+                                     [src_colmap] GEOS_HYPRE_DEVICE ( auto i ) { return src_colmap[i]; },
+                                     hypre_ParCSRMatrixOffd( unwrapped() ),
+                                     [dst_colmap] GEOS_HYPRE_DEVICE ( auto i ) { return dst_colmap[i]; },
+                                     scale );
+      }
       break;
     }
     case MatrixPatternOp::Subset:

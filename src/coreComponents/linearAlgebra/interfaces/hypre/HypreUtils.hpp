@@ -202,7 +202,7 @@ inline HYPRE_BigInt const * toHypreBigInt( geos::globalIndex const * const index
 }
 
 /**
- * @brief Gather a parallel vector on every rank.
+ * @brief Gather a parallel vector on a every rank.
  * @param vec the vector to gather
  * @return a newly allocated serial vector (may be null on ranks that don't have any elements)
  * @note caller takes ownership and must dispose of the vector appropriately
@@ -429,7 +429,7 @@ inline HYPRE_Int getILUType( LinearSolverParameters::AMG::SmootherType const typ
 {
   static map< LinearSolverParameters::AMG::SmootherType, HYPRE_Int > const typeMap =
   {
-    { LinearSolverParameters::AMG::SmootherType::ilu, 0 },
+    { LinearSolverParameters::AMG::SmootherType::ilu0, 0 },
     { LinearSolverParameters::AMG::SmootherType::ilut, 1 },
   };
   return findOption( typeMap, type, "ILU", "HyprePreconditioner" );
@@ -507,7 +507,7 @@ inline HYPRE_Int getILUType( LinearSolverParameters::PreconditionerType const ty
 {
   static map< LinearSolverParameters::PreconditionerType, HYPRE_Int > const typeMap =
   {
-    { LinearSolverParameters::PreconditionerType::ilu, 0 },
+    { LinearSolverParameters::PreconditionerType::iluk, 0 },
     { LinearSolverParameters::PreconditionerType::ilut, 1 },
   };
   return findOption( typeMap, type, "ILU", "HyprePreconditioner" );

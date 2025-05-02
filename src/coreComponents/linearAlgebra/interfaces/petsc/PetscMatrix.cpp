@@ -700,7 +700,7 @@ void PetscMatrix::separateComponentFilter( PetscMatrix & dst,
   GEOS_LAI_ASSERT( ready() );
 
   CRSMatrix< real64, globalIndex > tempMat;
-  tempMat.resize( numLocalRows(), numGlobalCols(), ( maxRowLengthLocal() + dofsPerNode - 1 ) / dofsPerNode );
+  tempMat.resize( numLocalRows(), numGlobalCols(), ( maxRowLength() + dofsPerNode - 1 ) / dofsPerNode );
   CRSMatrixView< real64, globalIndex > const tempMatView = tempMat.toView();
 
   PetscInt firstRow, lastRow;
@@ -846,7 +846,7 @@ void PetscMatrix::clampEntries( real64 const lo,
   } );
 }
 
-localIndex PetscMatrix::maxRowLengthLocal() const
+localIndex PetscMatrix::maxRowLength() const
 {
   GEOS_LAI_ASSERT( assembled() );
   RAJA::ReduceMax< parallelHostReduce, localIndex > maxLocalLength( 0 );

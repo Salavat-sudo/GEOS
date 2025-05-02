@@ -284,7 +284,7 @@ public:
   /**
    * @copydoc MatrixBase<PetscMatrix,PetscVector>::maxRowLength
    */
-  virtual localIndex maxRowLengthLocal() const override;
+  virtual localIndex maxRowLength() const override;
 
   virtual localIndex rowLength( globalIndex const globalRowIndex ) const override;
 

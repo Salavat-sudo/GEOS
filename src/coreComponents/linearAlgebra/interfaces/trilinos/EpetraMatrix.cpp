@@ -729,12 +729,6 @@ void EpetraMatrix::clampEntries( real64 const lo,
   } );
 }
 
-localIndex EpetraMatrix::maxRowLengthLocal() const
-{
-  GEOS_LAI_ASSERT( assembled() );
-  return m_matrix->MaxNumEntries();
-}
-
 localIndex EpetraMatrix::maxRowLength() const
 {
   GEOS_LAI_ASSERT( assembled() );

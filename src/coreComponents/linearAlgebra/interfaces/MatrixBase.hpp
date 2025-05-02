@@ -795,23 +795,12 @@ protected:
   ///@{
 
   /**
-   * @brief Returns the number of nonzero entries in the longest local row of the matrix.
+   * @brief Returns the number of nonzero entries in the longest row of the matrix.
    * @return the max length of a row
    *
    * Not collective.
    */
-  virtual localIndex maxRowLengthLocal() const = 0;
-
-  /**
-   * @brief Returns the number of nonzero entries in the longest row of the matrix.
-   * @return the max length of a row
-   *
-   * Collective.
-   */
-  virtual localIndex maxRowLength() const
-  {
-    return MpiWrapper::max( maxRowLengthLocal(), this->comm() );
-  }
+  virtual localIndex maxRowLength() const = 0;
 
   /**
    * @brief Get row length via global row index.

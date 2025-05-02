@@ -271,11 +271,6 @@ public:
                              bool const excludeDiag ) override;
 
   /**
-   * @copydoc MatrixBase<EpetraMatrix,EpetraVector>::maxRowLengthLocal
-   */
-  virtual localIndex maxRowLengthLocal() const override;
-
-  /**
    * @copydoc MatrixBase<EpetraMatrix,EpetraVector>::maxRowLength
    */
   virtual localIndex maxRowLength() const override;

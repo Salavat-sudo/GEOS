@@ -931,7 +931,7 @@ void CommunicationTools::setupGhosts( MeshLevel & meshLevel,
 
 void CommunicationTools::synchronizePackSendRecvSizes( string_array const & fieldNames,
                                                        ObjectManagerBase & manager,
-                                                       std::vector< NeighborCommunicator > & neighbors,
+                                                       stdVector< NeighborCommunicator > & neighbors,
                                                        MPI_iCommData & icomm,
                                                        bool onDevice )
 {
@@ -982,7 +982,7 @@ void CommunicationTools::synchronizePackSendRecvSizes( FieldIdentifiers const & 
 
 void CommunicationTools::asyncPack( string_array const & fieldNames,
                                     ObjectManagerBase & manager,
-                                    std::vector< NeighborCommunicator > & neighbors,
+                                    stdVector< NeighborCommunicator > & neighbors,
                                     MPI_iCommData & icomm,
                                     bool onDevice,
                                     parallelDeviceEvents & events )
@@ -1042,7 +1042,7 @@ void CommunicationTools::asyncSendRecv( stdVector< NeighborCommunicator > & neig
 
 void CommunicationTools::synchronizePackSendRecv( string_array const & fieldNames,
                                                   ObjectManagerBase & manager,
-                                                  std::vector< NeighborCommunicator > & neighbors,
+                                                  stdVector< NeighborCommunicator > & neighbors,
                                                   MPI_iCommData & icomm,
                                                   bool onDevice )
 {
@@ -1065,7 +1065,7 @@ void CommunicationTools::synchronizePackSendRecv( FieldIdentifiers const & field
 }
 
 bool CommunicationTools::asyncUnpack( ObjectManagerBase & manager,
-                                      std::vector< NeighborCommunicator > & neighbors,
+                                      stdVector< NeighborCommunicator > & neighbors,
                                       MPI_iCommData & icomm,
                                       bool onDevice,
                                       parallelDeviceEvents & events )
@@ -1148,7 +1148,7 @@ bool CommunicationTools::asyncUnpack( MeshLevel & mesh,
 }
 
 void CommunicationTools::finalizeUnpack( ObjectManagerBase & manager,
-                                         std::vector< NeighborCommunicator > & neighbors,
+                                         stdVector< NeighborCommunicator > & neighbors,
                                          MPI_iCommData & icomm,
                                          bool onDevice,
                                          parallelDeviceEvents & events )
@@ -1198,7 +1198,7 @@ void CommunicationTools::finalizeUnpack( MeshLevel & mesh,
 }
 
 void CommunicationTools::synchronizeUnpack( ObjectManagerBase & manager,
-                                            std::vector< NeighborCommunicator > & neighbors,
+                                            stdVector< NeighborCommunicator > & neighbors,
                                             MPI_iCommData & icomm,
                                             bool onDevice )
 {
@@ -1218,9 +1218,9 @@ void CommunicationTools::synchronizeUnpack( MeshLevel & mesh,
 }
 
 void CommunicationTools::synchronizeFields( string_array const & fieldNames,
-                                            ObjectManagerBase & manager,
-                                            std::vector< NeighborCommunicator > & neighbors,
-                                            bool onDevice )
+                                           ObjectManagerBase & manager,
+                                           stdVector< NeighborCommunicator > & neighbors,
+                                           bool onDevice )
 {
   GEOS_MARK_FUNCTION;
   MPI_iCommData icomm;
